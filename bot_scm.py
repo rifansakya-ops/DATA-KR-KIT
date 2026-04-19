@@ -15,14 +15,19 @@ def jalankan_bot():
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     
-    # Menggunakan Chrome Driver versi stabil di lingkungan GitHub Actions
-    driver = uc.Chrome(options=options, version_main=145)
+    # PERBAIKAN: Menghapus version_main agar otomatis mendeteksi versi Chrome sistem (GitHub Actions)
+    try:
+        driver = uc.Chrome(options=options)
+    except Exception as e:
+        print(f"Gagal menginisialisasi WebDriver: {e}")
+        return
     
     try:
         driver.get("https://scm.nusadaya.net/login")
         wait = WebDriverWait(driver, 25)
         
         # Proses Login Otomatis
+        print("Mencoba login...")
         email_input = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='text' or @placeholder='Email atau NIP']")))
         email_input.send_keys(os.environ.get('EMAIL_SCM'))
         driver.find_element(By.XPATH, "//input[@type='password']").send_keys(os.environ.get('PASS_SCM'))
@@ -31,7 +36,7 @@ def jalankan_bot():
         print("Login berhasil, menunggu dashboard...")
         time.sleep(15)
         
-        # URL Export yang kita dapatkan dari hasil Fetch/Inspect
+        # URL Export yang didapatkan dari hasil Fetch/Inspect
         export_url = "https://scm.nusadaya.net/izin-prinsip/export"
         
         # Ambil Cookie/Sesi hasil login untuk proses download
@@ -64,6 +69,8 @@ def jalankan_bot():
                 if len(rows_data) > 0:
                     res = requests.post(gas_url, data=json.dumps({"rows": rows_data}), headers={'Content-Type': 'application/json'})
                     print(f"Respon [{sheet_name}]: {res.text}")
+        else:
+            print(f"Gagal download file. Status code: {response_dl.status_code}")
             
     except Exception as e:
         print(f"Terjadi Kesalahan: {e}")
